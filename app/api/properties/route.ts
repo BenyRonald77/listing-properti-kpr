@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { validatePropertyInput, serializeProperty, PROPERTY_TYPES } from "@/lib/property";
 import { haversineKm, parseStringArray } from "@/lib/geo";
@@ -24,17 +25,19 @@ export async function GET(req: NextRequest) {
   const facilities = (q.get("facilities") ?? "")
     .split(",").map((s) => s.trim()).filter(Boolean);
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.PropertyWhereInput = {};
+  const priceRange: { gte?: number; lte?: number } = {};
   if (minPrice !== null) {
     const v = Number(minPrice);
     if (!isFinite(v)) return NextResponse.json({ error: "minPrice harus angka" }, { status: 400 });
-    (where.price as Record<string, unknown> ??= {}).gte = v;
+    priceRange.gte = v;
   }
   if (maxPrice !== null) {
     const v = Number(maxPrice);
     if (!isFinite(v)) return NextResponse.json({ error: "maxPrice harus angka" }, { status: 400 });
-    (where.price as Record<string, unknown> ??= {}).lte = v;
+    priceRange.lte = v;
   }
+  if (priceRange.gte !== undefined || priceRange.lte !== undefined) where.price = priceRange;
   if (type !== null) {
     if (!(PROPERTY_TYPES as readonly string[]).includes(type))
       return NextResponse.json({ error: `type harus salah satu dari: ${PROPERTY_TYPES.join(", ")}` }, { status: 400 });
