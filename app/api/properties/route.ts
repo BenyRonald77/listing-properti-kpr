@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validatePropertyInput, serializeProperty, PROPERTY_TYPES } from "@/lib/property";
 import { haversineKm, parseStringArray } from "@/lib/geo";
+import { evaluateMatchesForProperty } from "@/lib/match";
 
 const isNum = (v: unknown): v is number => typeof v === "number" && isFinite(v);
 
@@ -105,5 +106,11 @@ export async function POST(req: NextRequest) {
       agentName: d.agentName,
     },
   });
+  // pencocokan otomatis terhadap semua saved search (efek samping; kegagalan tidak menggagalkan create)
+  try {
+    await evaluateMatchesForProperty(prisma, created.id);
+  } catch (e) {
+    console.error("gagal evaluasi kecocokan saved search:", e);
+  }
   return NextResponse.json(serializeProperty(created), { status: 201 });
 }
