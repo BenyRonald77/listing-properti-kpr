@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Property {
+  id             Int      @id @default(autoincrement())
+  title          String
+  description    String
+  price          Float
+  type           String // rumah | apartemen | tanah | ruko
+  bedrooms       Int      @default(0)
+  bathrooms      Int      @default(0)
+  landAreaM2     Float    @default(0)
+  buildingAreaM2 Float    @default(0)
+  lat            Float
+  lng            Float
+  facilities     String   @default("[]") // JSON array string
+  photos         String   @default("[]") // JSON array string (URL)
+  status         String   @default("active") // active | sold
+  agentName      String   @default("")
+  createdAt      DateTime @default(now())
+
+  matches MatchNotification[]
+
+  @@index([status])
+  @@index([type])
+}
+
+model SavedSearch {
+  id          Int      @id @default(autoincrement())
+  name        String
+  centerLat   Float?
+  centerLng   Float?
+  radiusKm    Float?
+  polygonJson String? // JSON [[lng,lat],...] tertutup
+  minPrice    Float?
+  maxPrice    Float?
+  types       String   @default("[]") // JSON array string
+  facilities  String   @default("[]") // JSON array string (AND)
+  createdAt   DateTime @default(now())
+
+  matches MatchNotification[]
+}
+
+model MatchNotification {
+  id            Int         @id @default(autoincrement())
+  savedSearchId Int
+  propertyId    Int
+  createdAt     DateTime    @default(now())
+
+  savedSearch SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  property    Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([savedSearchId, propertyId])
+}
